@@ -1,4 +1,4 @@
-package Acme::HeptaSymbolizer;
+package Acme::HeptaSymbolize;
 use strict;
 use warnings;
 use List::Util 'shuffle';
@@ -185,15 +185,15 @@ __END__
 
 =head1 NAME
 
-Acme::HeptaSymbolizer -
+Acme::HeptaSymbolize -
 
 =head1 SYNOPSIS
 
-  use Acme::HeptaSymbolizer;
+  use Acme::HeptaSymbolize;
 
 =head1 DESCRIPTION
 
-Acme::HeptaSymbolizer is
+Acme::HeptaSymbolize is
 
 =head1 AUTHOR
 

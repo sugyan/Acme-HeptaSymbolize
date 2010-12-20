@@ -1,6 +1,6 @@
 use inc::Module::Install;
-name 'Acme-HeptaSymbolizer';
-all_from 'lib/Acme/HeptaSymbolizer.pm';
+name 'Acme-HeptaSymbolize';
+all_from 'lib/Acme/HeptaSymbolize.pm';
 
 # requires '';
 

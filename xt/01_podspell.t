@@ -7,4 +7,4 @@ all_pod_files_spelling_ok('lib');
 __DATA__
 sugyan
 sugi1982@gmail.com
-Acme::HeptaSymbolizer
+Acme::HeptaSymbolize
