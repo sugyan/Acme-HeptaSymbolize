@@ -165,13 +165,13 @@ sub import {
     if ($code =~ /^[\(\)\.\^\~\=${quote}]+$/) {
         do {
             no warnings 'numeric';
-            eval $code;
+            eval $code; ## no critic
         };
     }
     else {
         $code =~ s/([\"\$\@\\\{\}])/\\$1/g;
         my $symbolized = "${quote}${quote}=~(" . symbolize(qq/(?{eval"$code"})/, $quote) . ')';
-        open 0, ">$0" or print "Can't symbolize '$0'\n" and exit;
+        open 0, ">$0" or print "Can't symbolize '$0'\n" and exit; ## no critic
         {
             no strict 'refs';
             print {0} $symbolized;
