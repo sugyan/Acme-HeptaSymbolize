@@ -203,14 +203,38 @@ sub _pour {
         }
     }
 
-    my @ptok;
-    push(@ptok, (
-        $shape =~ /(\S+)/ ? length $1 : 0
-    ) == 3 ? "'='" : "''", '=~');
-    push(@ptok, $symbolized =~ /[().^~]|\'\'|=[=~]|.../g);
-    splice(@ptok, 2, 2);
+    # tokenize
+    my @ptok = $symbolized =~ /[().^~]|\'\'|=[=~]|.../g;
+    if (($shape =~ /(\S+)/ ? length $1 : 0) == 3) {
+        $ptok[0] = "'" . (qw/= ~ ( ) . ^/[rand 6]) . "'";
+    }
+    # TODO(edge case): start with '## # ' or '### # '
 
-    my $iendprog = @ptok;
+    # fill estimated spaces
+    if ((my $shortage = $ttlen - length $symbolized) > 0) {
+        $shortage -= 2 * grep $_, @tnlines;
+        # 0x0A
+        while ($shortage > 27) {
+            my @padding = ('.', '(');
+            for my $c (shuffle(qw/1 '.' '=' '('/)) {
+                push @padding, $c eq '1' ? (qw/( '' == '' ) . ''/) : ($c), '^';
+            }
+            $padding[-1] = ')';
+            splice @ptok, $#ptok - 24, 0, @padding;
+            $shortage -= 27;
+        }
+        # 0x20
+        while ($shortage > 11) {
+            my @padding = ('.', '(');
+            for my $c (shuffle(qw/'^' '~'/)) {
+                push @padding, $c, '^';
+            }
+            $padding[-1] = ')';
+            splice @ptok, $#ptok - 24, 0, @padding;
+            $shortage -= 11;
+        }
+    }
+
     my $sidx = 0;
     for my $rline (@tnlines) {
         unless ($rline) {
@@ -224,15 +248,16 @@ sub _pour {
             }
             my $tlen = $rline->[$it];
             my $plen = length $ptok[$sidx];
-            if ($tlen == $plen) {
-                $outstr .= $ptok[$sidx++];
-                next;
-            }
-            if ($plen > $tlen) {
-                $outstr .= '(' x $tlen;
-                splice(@ptok, $sidx+1, 0, (')') x $tlen);
-                $iendprog += $tlen if $sidx < $iendprog;
-                next;
+            if ($plen) {
+                if ($tlen == $plen) {
+                    $outstr .= $ptok[$sidx++];
+                    next;
+                }
+                if ($plen > $tlen) {
+                    $outstr .= '(' x $tlen;
+                    splice(@ptok, $sidx + 1, 0, (')') x $tlen);
+                    next;
+                }
             }
             my $fexact = 0;
             my $n = _guess_ntok(\@ptok, $sidx, $tlen, \$fexact);
@@ -242,25 +267,18 @@ sub _pour {
                 next;
             }
             my $str;
-            --$n while $n > 0 && ! defined(
-                $str = _pour_chunk(\@ptok, $sidx, $n, $tlen)
-            );
+            --$n while $n > 0 && ! defined($str = _pour_chunk(\@ptok, $sidx, $n, $tlen));
             if ($n) {
                 $outstr .= $str;
                 $sidx += $n;
                 next;
             }
-            ++$n while $n < $tlen && length $ptok[$sidx + $n] < 2;
-            die "oops ($n >= $tlen)" if $n >= $tlen;
-            $outstr .= join("", @ptok[$sidx .. $sidx + $n - 1]);
-            $sidx += $n;
-            $outstr .= '(' x (my $nleft = $tlen - $n);
-            splice(@ptok, $sidx+1, 0, (')') x $nleft);
-            $iendprog += $nleft if $sidx < $iendprog;
         }
         $outstr .= "\n";
+    }
 
-        # last;
+    if ($sidx < @ptok) {
+        $outstr .= "\n" . join("", @ptok[$sidx .. $#ptok]);
     }
 
     return $outstr;
@@ -271,7 +289,23 @@ sub _guess_ntok {
     my $tlen = 0;
     for my $i ($sidx .. $sidx + $slen) {
         unless ($rtok->[$i]) {
-            splice @{$rtok}, $#{$rtok}, 0, ('.', "''");
+            my $space = $slen - $tlen;
+            my @padding = ('.');
+            if ($space > 8) {
+                push @padding, qw/( ~ '' )/;
+            }
+            else {
+                if ($space % 3 == 2) {
+                    push @padding, qw/( '' )/;
+                }
+                if ($space % 3 == 1) {
+                    push @padding, qw/~ ''/;
+                }
+                if ($space % 3 == 0) {
+                    push @padding, qw/''/;
+                }
+            }
+            splice @{$rtok}, $#{$rtok}, 0, @padding;
         }
         unless (($tlen += length($rtok->[$i])) < $slen) {
             ${$rexact} = $tlen == $slen;
@@ -307,8 +341,8 @@ sub _pour_chunk {
     }
 
     if ($rtok->[$eidx + 1] =~ /^'/) {
-        splice @{$rtok}, $eidx + 2, 0, (')');
-        return join('', @{$rtok}[$sidx .. $eidx], '(');
+        splice @{$rtok}, $eidx + 2, 0, (')' x $d);
+        return join('', @{$rtok}[$sidx .. $eidx], '(' x $d);
     }
     else {
         splice @{$rtok}, $iquote + 1, 0, (')');
