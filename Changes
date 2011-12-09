@@ -1,4 +1,7 @@
 Revision history for Perl extension Acme::HeptaSymbolize
 
-0.01    Mon Dec 20 01:18:19 2010
+0.02    Fri Dec  9 2011
+        - added option
+
+0.01    Mon Dec 20 2010
         - original version

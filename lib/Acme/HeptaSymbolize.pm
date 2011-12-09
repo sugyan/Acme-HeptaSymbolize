@@ -2,7 +2,7 @@ package Acme::HeptaSymbolize;
 use strict;
 use warnings;
 use List::Util 'shuffle';
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 {
     my @dict = (
