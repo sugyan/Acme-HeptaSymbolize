@@ -194,12 +194,16 @@ sub _pour {
     my $outstr = '';
 
     my $ttlen = 0;
+    my $ttnum = 0;
     my @tnlines = map {
         length $_ ? [ map { length } split /([^ ]+)/ ] : undef;
     } split /\n/, $shape;
     for my $r (grep $_, @tnlines) {
         for my $i (0 .. $#$r) {
-            $i & 1 and $ttlen += $r->[$i];
+            if ($i & 1) {
+                $ttlen += $r->[$i];
+                $ttnum++;
+            }
         }
     }
 
@@ -212,31 +216,33 @@ sub _pour {
 
     # fill estimated spaces
     if ((my $shortage = $ttlen - length $symbolized) > 0) {
-        $shortage -= 2 * grep $_, @tnlines;
+        # ???
+        $shortage -= $ttnum;
         # 0x0A
-        while ($shortage > 27) {
+        while ($shortage > 32) {
             my @padding = ('.', '(');
             for my $c (shuffle(qw/1 '.' '=' '('/)) {
                 push @padding, $c eq '1' ? (qw/( '' == '' ) . ''/) : ($c), '^';
             }
             $padding[-1] = ')';
             splice @ptok, $#ptok - 24, 0, @padding;
-            $shortage -= 27;
+            $shortage -= 26;
         }
         # 0x20
-        while ($shortage > 11) {
+        while ($shortage > 16) {
             my @padding = ('.', '(');
             for my $c (shuffle(qw/'^' '~'/)) {
                 push @padding, $c, '^';
             }
             $padding[-1] = ')';
             splice @ptok, $#ptok - 24, 0, @padding;
-            $shortage -= 11;
+            $shortage -= 10;
         }
     }
 
     my $sidx = 0;
-    for my $rline (@tnlines) {
+    for my $rline_idx (0 .. $#tnlines) {
+        my $rline = $tnlines[$rline_idx];
         unless ($rline) {
             $outstr .= "\n";
             next;
@@ -254,14 +260,25 @@ sub _pour {
                     next;
                 }
                 if ($plen > $tlen) {
-                    $outstr .= '(' x $tlen;
-                    splice(@ptok, $sidx + 1, 0, (')') x $tlen);
-                    next;
+                    if ($ptok[$sidx] =~ /^'/) {
+                        $outstr .= '(' x $tlen;
+                        splice(@ptok, $sidx + 1, 0, (')') x $tlen);
+                        next;
+                    }
+                    else {
+                        splice(@ptok, $sidx, 0, qw/. ''/);
+                        redo;
+                    }
                 }
             }
             my $fexact = 0;
             my $n = _guess_ntok(\@ptok, $sidx, $tlen, \$fexact);
             if ($fexact) {
+                if ($sidx + $n == @ptok &&
+                        ($rline_idx < $#tnlines || $it < $#$rline)) {
+                    splice @ptok, $#ptok, 0, qw/. ''/;
+                    redo;
+                }
                 $outstr .= join("", @ptok[$sidx .. $sidx + $n - 1]);
                 $sidx += $n;
                 next;
